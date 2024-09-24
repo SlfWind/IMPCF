@@ -1,0 +1,25 @@
+use crate::ast::*;
+
+grammar;
+
+match{
+    //Skip the blank
+    r"\s*" => {},
+    _
+}
+
+pub CompUnit: CompUnit = <SeqStmt> => CompUnit::Stmt(<>);
+SeqStmt: SeqStmt = {
+    <Stmt> => SeqStmt::Stmt(Box::new(<>)),
+    <lhs:SeqStmt> ";" <rhs:Stmt> => SeqStmt::Seq(Box::new(lhs), Box::new(rhs)),
+    "(" <lhs:SeqStmt> ";" <rhs:Stmt> ")" => SeqStmt::Seq(Box::new(lhs), Box::new(rhs)),
+}
+Stmt: Stmt = {
+    "(" <Stmt> ")" => <>,
+    "skip" => Stmt::Skip(),
+    <Variable> ":=" <Exp> => Stmt::Asgn(<>),
+    "if" <e:Exp> "then" <lhs:SeqStmt> "else" <rhs:SeqStmt> "end" => Stmt::If(e, Box::new(lhs), Box::new(rhs)),
+    "while" <e:Exp> "do" <s:SeqStmt> "end" => Stmt::While(e, Box::new(s))
+}
+Exp: Exp = r"[1-9][0-9]*" => Exp::Num(i32::from_str_radix(<>, 10).unwrap());
+Variable: Variable = r"[_a-zA-Z][_a-zA-Z0-9]*" => Variable::Int(<>.to_string());
